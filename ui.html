@@ -105,27 +105,57 @@
     <form>
         <div id="number">
             <label>Enter number of copies</label>
-            <input id="numberSelection" type="number" min="1"/>
+            <input id="numberSelection" type="number" min="1" required/>
         </div>
-        <div id="text">
-            <label>Select the text box to manipulate</label>
-            <select id="textSelection">
-                <option value="text1">text1</option>
-                <option value="text2">text2</option>
-                <option value="text3">text3</option>
-                <option value="text4">text4</option>
-                <option value="text5">text5</option>
-                <option value="text6">text6</option>
-            </select>
+        <div id="selectingText">
+            <div class="textPart">
+                <div class="text">
+                    <label>Select the text box to manipulate</label>
+                    <select class="textSelection">
+
+                    </select>
+                </div>
+            </div>
+            <div id="buttonPart">
+                <button id="AddText" type="button">add more</button>
+            </div>
         </div>
         <div id="file">
             <label>Enter the CSV</label>
-            <input type="file" id="fileSelection" required/>
+            <input id="fileSelect" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
         </div>
         <div id="formAction">
             <button id="submit" type="submit">Submit</button>
             <button id="reset" type="reset">Reset</button>
         </div>
     </form>
+
 </body>
+<script>
+    var selectionData = [];
+    onmessage = (event) => {
+        selectionData = event.data.pluginMessage
+        populateTextSelections();
+    }
+    
+    function populateTextSelections() {
+        var textSelection = document.querySelector(".textSelection")
+        textSelection.innerHTML = '';
+        
+        selectionData.forEach(data => {
+            var option = document.createElement('option')
+            option.value = data.name
+            option.innerHTML = data.name
+            textSelection.appendChild(option)
+        });
+    }
+
+    var addButton = document.querySelector("#AddText")
+    addButton.addEventListener("click", () => {
+       var textPart = document.querySelector(".textPart")
+       var text = document.querySelector(".text")
+       var newText = text.cloneNode(true)
+       textPart.appendChild(newText)
+    }) 
+</script>
 </html>
