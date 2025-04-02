@@ -102,17 +102,16 @@
 </head>
 <body>
     <h1>Duplication Plugin</h1>
-    <form>
+    <form id="duplicationForm">
         <div id="number">
-            <label>Enter number of copies</label>
-            <input id="numberSelection" type="number" min="1" required/>
+            <label for="numberSelection">Enter number of copies</label>
+            <input id="numberSelection" name="numberOfCopies" type="number" min="1" required/>
         </div>
         <div id="selectingText">
             <div class="textPart">
                 <div class="text">
-                    <label>Select the text box to manipulate</label>
-                    <select class="textSelection">
-
+                    <label for="textSelection">Select the text box to manipulate</label>
+                    <select class="textSelection" name="textSelections[]">
                     </select>
                 </div>
             </div>
@@ -121,15 +120,14 @@
             </div>
         </div>
         <div id="file">
-            <label>Enter the CSV</label>
-            <input id="fileSelect" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+            <label for="fileSelect">Enter the CSV</label>
+            <input id="fileSelect" name="csvFile" type="file" accept=".csv" />
         </div>
         <div id="formAction">
             <button id="submit" type="submit">Submit</button>
             <button id="reset" type="reset">Reset</button>
         </div>
     </form>
-
 </body>
 <script>
     var selectionData = [];
@@ -139,14 +137,15 @@
     }
     
     function populateTextSelections() {
-        var textSelection = document.querySelector(".textSelection")
-        textSelection.innerHTML = '';
-        
-        selectionData.forEach(data => {
-            var option = document.createElement('option')
-            option.value = data.name
-            option.innerHTML = data.name
-            textSelection.appendChild(option)
+        var textSelections = document.querySelectorAll(".textSelection");
+        textSelections.forEach(textSelection => {
+            textSelection.innerHTML = '';
+            selectionData.forEach(data => {
+                var option = document.createElement('option');
+                option.value = data.name;
+                option.innerHTML = data.name;
+                textSelection.appendChild(option);
+            });
         });
     }
 
@@ -157,5 +156,65 @@
        var newText = text.cloneNode(true)
        textPart.appendChild(newText)
     }) 
+    document.getElementById("duplicationForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        const numberOfCopies = formData.get("numberOfCopies");
+        const textSelections = [];
+        document.querySelectorAll(".textSelection").forEach(select => {
+            textSelections.push(select.value);
+        });
+        
+        const csvFile = formData.get("csvFile");
+        
+        if (csvFile.size > 0) {
+            readCSV(csvFile).then(data => {
+                const message = {
+                    type: 'submit-form',
+                    numberOfCopies: numberOfCopies,
+                    textSelections: textSelections,
+                    csvData: data
+                };
+                parent.postMessage({ pluginMessage: message }, '*');
+            }).catch(error => {
+                console.error("Error reading CSV file:", error);
+                alert("Error reading CSV file: " + error.message);
+            });
+        } else {
+            alert("Please select a CSV file");
+        }
+    });
+
+    function readCSV(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const csvContent = event.target.result;
+                    const lines = csvContent.split('\n');
+                    const headers = lines[0].split(',').map(header => header.trim());
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim() === '') continue;
+                        const values = lines[i].split(',').map(value => value.trim());
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index] || '';
+                        });
+                        
+                        data.push(row);
+                    }
+                    resolve(data);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => {
+                reject(new Error('Failed to read file'));
+            };
+            
+            reader.readAsText(file);
+        });
+    }
 </script>
 </html>
