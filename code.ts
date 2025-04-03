@@ -28,6 +28,7 @@ figma.ui.postMessage(Nodes);
 
 figma.ui.onmessage = (message) => {
     let csv = message.csvData
+    let changableInput = message.textSelections
     let numCols = 5
     let objSpacing = 40
     let copies = parseInt(message.numberOfCopies)
@@ -56,6 +57,22 @@ figma.ui.onmessage = (message) => {
                 nodeYPosition += objSpacing + obj.height
                 nodeXPosition = objSpacing 
                 numRows++
+            }
+            if ('children' in newObj) {
+                newObj.children.map(async (child) => {
+                    if(child.type == "TEXT" ){
+                        for (let d = 0; d < changableInput.length; d++) {
+                            if (child.name == changableInput[d]) {
+                                await Promise.all(
+                                    child.getRangeAllFontNames(0, child.characters.length).map(figma.loadFontAsync)
+                                )
+                                child.characters = csv[i][changableInput[d]]
+                                child.textAutoResize = "WIDTH_AND_HEIGHT"
+                                child.autoRename = true
+                            }
+                        }
+                    }
+                });
             }
             section.appendChild(newObj) //point to note whenever we appendChild a node into say a section it will change it's inial co-ordinates to the starting point of the parent node
         }
