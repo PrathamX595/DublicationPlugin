@@ -31,9 +31,11 @@ figma.ui.onmessage = (message) => {
     let numCols = 5
     let objSpacing = 40
     let copies = parseInt(message.numberOfCopies)
+    let rows = 0
+    copies%5 ==0 ? rows = copies/numCols : rows = Math.floor(copies/numCols) +1
     let sectionHeight = 0
     let sectionWidth = 0
-    copies >= 5 ? sectionHeight = obj.height*copies/numCols + objSpacing * ((copies/numCols) + 1) : sectionHeight = obj.height + objSpacing*2
+    copies >= 5 ? sectionHeight = obj.height*rows + objSpacing * (rows + 1) : sectionHeight = obj.height + objSpacing*2
     copies >= 5 ? sectionWidth = obj.width*numCols + objSpacing * (numCols+1) : sectionWidth = obj.width * copies + objSpacing * (copies + 1)
     let section = figma.createSection()
     section.resizeWithoutConstraints(sectionWidth,sectionHeight)
