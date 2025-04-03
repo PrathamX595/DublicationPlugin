@@ -26,27 +26,31 @@ if ('children' in obj) {
 
 figma.ui.postMessage(Nodes);
 
-figma.ui.onmessage = (message) => {
+figma.ui.onmessage = async (message) => {
     let csv = message.csvData
     let changableInput = message.textSelections
     let numCols = 5
     let objSpacing = 40
     let copies = parseInt(message.numberOfCopies)
+    let itterations = Math.min(copies, csv.length)
     let rows = 0
-    copies%5 ==0 ? rows = copies/numCols : rows = Math.floor(copies/numCols) +1
+    itterations % 5 ==0 ? rows = itterations/numCols : rows = Math.floor(itterations/numCols) +1
     let sectionHeight = 0
     let sectionWidth = 0
-    copies >= 5 ? sectionHeight = obj.height*rows + objSpacing * (rows + 1) : sectionHeight = obj.height + objSpacing*2
-    copies >= 5 ? sectionWidth = obj.width*numCols + objSpacing * (numCols+1) : sectionWidth = obj.width * copies + objSpacing * (copies + 1)
+    itterations >= 5 ? sectionHeight = obj.height*rows + objSpacing * (rows + 1) : sectionHeight = obj.height + objSpacing*2
+    itterations >= 5 ? sectionWidth = obj.width*numCols + objSpacing * (numCols+1) : sectionWidth = obj.width * itterations + objSpacing * (itterations + 1)
     let section = figma.createSection()
     section.resizeWithoutConstraints(sectionWidth,sectionHeight)
     section.name = "copies"
+    section.fills = [{ type: 'SOLID', color: { r: 0 / 255, g: 0 / 255, b: 0 / 255 },opacity: 0.3 }];
     section.x = obj.x + obj.width + 100
     section.y = obj.y + obj.height + 100
     let nodeXPosition = objSpacing 
     let nodeYPosition = objSpacing 
     let numRows = 1
-    for (let i = 0; i < copies; i++) {
+
+    const textUpdatePromises = [];
+    for (let i = 0; i < itterations; i++) {
         if (obj.type == "FRAME"){
             let newObj = obj.clone()
             newObj.x = nodeXPosition
@@ -59,13 +63,14 @@ figma.ui.onmessage = (message) => {
                 numRows++
             }
             if ('children' in newObj) {
-                newObj.children.map(async (child) => {
+                const childPromises = newObj.children.map(async (child) => {
                     if(child.type == "TEXT" ){
                         for (let d = 0; d < changableInput.length; d++) {
                             if (child.name == changableInput[d]) {
                                 await Promise.all(
                                     child.getRangeAllFontNames(0, child.characters.length).map(figma.loadFontAsync)
                                 )
+
                                 child.characters = csv[i][changableInput[d]]
                                 child.textAutoResize = "WIDTH_AND_HEIGHT"
                                 child.autoRename = true
@@ -73,8 +78,12 @@ figma.ui.onmessage = (message) => {
                         }
                     }
                 });
+                textUpdatePromises.push(...childPromises);
             }
             section.appendChild(newObj) //point to note whenever we appendChild a node into say a section it will change it's inial co-ordinates to the starting point of the parent node
         }
     }
+
+    await Promise.all(textUpdatePromises);
+    figma.closePlugin("Duplicates have been created")
 }
